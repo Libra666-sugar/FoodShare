@@ -1,16 +1,12 @@
 from datetime import datetime, timedelta
 from symtable import Class
-
-from django.contrib.auth.models import User
 from django.db import models
 
-# Create your models here.
 
 class StatusChoices(models.IntegerChoices):
     EXAMINE=0  # 审核中
     WORKING=1  # 工作中
     STOP=2 #暂停营业
-
 
 class Merchant(models.Model):
     merchant_id = models.AutoField(primary_key=True)
@@ -58,6 +54,13 @@ class RecommendationLog(models.Model):
     parameters = models.JSONField()
     user_id = models.ForeignKey('User',on_delete=models.CASCADE)
     merchant_ids = models.ManyToManyField('Merchant')
+
+class UserFavourite(models.Model): #用户可以选择收藏商家或者菜品
+    favourite_id = models.AutoField(primary_key=True)
+    create_time = models.DateTimeField(auto_now_add=True)
+    user_id = models.ForeignKey('User',on_delete=models.CASCADE)
+    merchant_id = models.ForeignKey('Merchant',on_delete=models.CASCADE,blank=True,null=True)
+    dish_id = models.ForeignKey('Dish',on_delete=models.CASCADE,blank=True,null=True)
 
 
 
