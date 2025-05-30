@@ -6,8 +6,9 @@ from rest_framework.decorators import api_view, authentication_classes, permissi
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.contrib.auth import login
+from unicodedata import category
 
-from app01.models import UserFavourite, Merchant
+from app01.models import UserFavourite, Merchant, Dish, Category
 
 
 # Create your views here.
@@ -83,7 +84,7 @@ def favorite_merchant(request):
    merchant_id = request.data.get('merchant_id')
    if UserFavourite.objects.filter(user_id = user.id , merchant_id=merchant_id).exists():
        return Response({'error':'当前商家已收藏'},status=400)
-   UserFavourite.objects.create(user_id = user.id,merchant_id=merchant_id)
+   UserFavourite.objects.create(user_id = user.id,merchant_id=merchant_id,type=1)
    return Response({'message':'收藏商家成功！'},status=200)
 
 @authentication_classes([SessionAuthentication, TokenAuthentication])
@@ -94,7 +95,7 @@ def favourite_dish(request):
     dish_id = request.data.get('dish_id')
     if UserFavourite.objects.filter(user_id = user.id, dish_id=dish_id).exists():
         return Response({'error': '当前菜品已收藏'}, status=400)
-    UserFavourite.objects.create(user_id=user.id, dish_id=dish_id)
+    UserFavourite.objects.create(user_id=user.id, dish_id=dish_id,type=0)
     return Response({'message': '收藏菜品成功！'}, status=200)
 
 @authentication_classes([SessionAuthentication, TokenAuthentication])
@@ -103,7 +104,83 @@ def favourite_dish(request):
 def show_favourite(request):
     user = request.user
     favourite_list = UserFavourite.objects.filter(user_id = user.id)
-    
+    for item in favourite_list:
+        if item.type == 0:
+            # 寻找id为dish_id的菜品
+            dish = Dish.objects.get(id=item.dish_id)
+            information = {
+                'time':item.create_time,
+                'name':dish.dish_name,
+                'price':dish.price,
+                'description':dish.description,
+                'image':dish.image_url,
+                'sales':dish.sales_count
+            } # 展示菜品信息
+        else :
+            merchant = Merchant.objects.get(id=item.merchant_id)
+            category = Category.objects.get(id = merchant.category_id)
+            information = {
+                'time':item.create_time,
+                'name':merchant.merchant_name,
+                'address':merchant.address,
+                'phone':merchant.contact_phone,
+                'email':merchant.contact_email,
+                'hour':merchant.business_hours,
+                'logo':merchant.logo,
+                'introduction':merchant.introduction,
+                'score':merchant.avg_score,
+                'status':merchant.status,
+                'create_time':merchant.create_time,
+                'category':category.category_name
+            }
+        return JsonResponse(information,status=200)
+
+@api_view(['POST'])
+def apply(request): # 商家入驻申请
+    name =  request.data.get('merchant_name')
+    address = request.data.get('address')
+    phone = request.data.get('contact_phone')
+    email = request.data.get('contact_email')
+    hour = request.data.get('business_hours')
+    logo = request.data.get('logo')
+    introduction = request.data.get('introduction')
+    category_id = Category.objects.get(category_name=request.data.get('category_name'))
+    if name is None :
+        return Response({'error':'请填写姓名！'},status=400)
+    elif address is None :
+        return Response({'error':'请填写具体地址！'},status=400)
+    elif phone is None or email is None :
+        return Response({'error':'请填写具体联系方式（电话或者邮箱）'},status=400)
+    else:
+        Merchant.objects.create(merchant_name=name,address = address,contact_email=email,contact_phone=phone,business_hours=hour,logo=logo,introduction=introduction,status = 0,avg_score = 0,category_id=category_id)
+        return Response({'message':'商家申请提交成功，请耐心等待审核！'},status=200)
+
+@api_view(['POST'])
+def merchant_info(request): #修改商家信息
+    address = request.data.get('address')
+    phone = request.data.get('contact_phone')
+    email = request.data.get('contact_email')
+    business_hours = request.data.get('business_hours')
+    logo = request.data.get('logo')
+    introduction = request.data.get('introduction')
+    merchant = Merchant.objects.get(id=request.data.get('merchant_id'))
+    if address is not None :
+        merchant.address = address
+    if phone is not None :
+       merchant.phone = phone
+    if email is not None:
+        merchant.email = email
+    if business_hours is not None :
+        merchant.business_hours = business_hours
+    if logo is not None :
+        merchant.logo = logo
+    if introduction is not None :
+        merchant.introduction = introduction
+    return Response({'message':'更新信息成功!'},status=200)
+
+
+
+
 
 
 

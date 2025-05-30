@@ -8,6 +8,10 @@ class StatusChoices(models.IntegerChoices):
     WORKING=1  # 工作中
     STOP=2 #暂停营业
 
+class FavouriteChoices(models.IntegerChoices):
+    DISH = 0 # 菜品
+    MERCHANT = 1  # 商家
+
 class Merchant(models.Model):
     merchant_id = models.AutoField(primary_key=True)
     merchant_name = models.CharField(max_length=100,unique=True)
@@ -58,6 +62,7 @@ class RecommendationLog(models.Model):
 class UserFavourite(models.Model): #用户可以选择收藏商家或者菜品
     favourite_id = models.AutoField(primary_key=True)
     create_time = models.DateTimeField(auto_now_add=True)
+    type = models.IntegerField(choices = FavouriteChoices,default=0)
     user_id = models.ForeignKey('User',on_delete=models.CASCADE)
     merchant_id = models.ForeignKey('Merchant',on_delete=models.CASCADE,blank=True,null=True)
     dish_id = models.ForeignKey('Dish',on_delete=models.CASCADE,blank=True,null=True)
